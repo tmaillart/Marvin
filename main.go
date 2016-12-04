@@ -6,6 +6,8 @@ import(
   "bufio"
   "fmt"
   "time"
+  "os/exec"
+  "strings"
 )
 
 type Queue struct{
@@ -98,7 +100,10 @@ func talkToMe(in <-chan string){
   for{
     msg:=<-in
     fmt.Printf("%s",msg)
-    time.Sleep(time.Second *2)
+    cmd:=exec.Command("say");
+    cmd.Stdin = strings.NewReader(msg)
+    cmd.Run()
+    time.Sleep(time.Second)
   }
 }
 
