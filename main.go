@@ -5,7 +5,6 @@ import(
   "net"
   "bufio"
   "fmt"
-  "time"
   "os/exec"
   "strings"
 )
@@ -103,7 +102,6 @@ func talkToMe(in <-chan string){
     cmd:=exec.Command("say");
     cmd.Stdin = strings.NewReader(msg)
     cmd.Run()
-    time.Sleep(time.Second)
   }
 }
 
