@@ -107,7 +107,7 @@ func talkToMe(in <-chan string){
     message := parts[0]
 
     // Optional arguments
-    arguments := strings.Fields(strings.Join(parts[1:len(parts)], ""))
+    arguments := strings.Fields(strings.Join(parts[1:], ""))
 
     // Build command arguments
     args := append([]string{message}, arguments...)
