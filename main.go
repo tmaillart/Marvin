@@ -99,8 +99,21 @@ func talkToMe(in <-chan string){
   for{
     msg:=<-in
     fmt.Printf("%s",msg)
-    cmd:=exec.Command("say");
-    cmd.Stdin = strings.NewReader(msg)
+
+    // Extract parts from input (format: message | options)
+    parts := strings.Split(msg, "|")
+
+    // Message
+    message := parts[0]
+
+    // Optional arguments
+    arguments := strings.Fields(strings.Join(parts[1:len(parts)], ""))
+
+    // Build command arguments
+    args := append([]string{message}, arguments...)
+
+    // Execute command
+    cmd:=exec.Command("say", args...)
     cmd.Run()
   }
 }
