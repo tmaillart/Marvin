@@ -1,1 +1,5 @@
 main
+.DS_Store
+bin
+pkg
+src
