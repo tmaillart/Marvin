@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os/exec"
@@ -13,6 +14,7 @@ type Request struct {
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
 	Content string   `json:"content"`
+	source  net.Addr
 }
 
 type Queue struct {
@@ -61,10 +63,6 @@ func (q *Queue) deQueue() (Request, bool) {
 		return str, true
 	}
 	str = q.head.value
-	//toRemove:=q.previous
-	//q.previous.previous.next=q
-	//q.previous=q.previous.previous
-	//delete(toRemove)
 	q.head.previous.next = q.head.next
 	q.head.next.previous = q.head.previous
 	q.head = q.head.next
@@ -76,11 +74,12 @@ func handleConn(c net.Conn, out chan<- Request) { //,out chan<- string
 	var message Request
 	for {
 		err := json.NewDecoder(c).Decode(&message)
-		if err != nil {
+		if err == io.EOF {
 			return
+		} else if err == nil {
+			message.source = c.RemoteAddr()
+			out <- message
 		}
-		fmt.Printf("%s\n", message.Command)
-		out <- message
 	}
 }
 
@@ -104,19 +103,28 @@ func runQueue(in <-chan Request, out chan<- Request) {
 }
 
 func talkToMe(in <-chan Request) {
+	var lastSource string
+	var source string
 	for {
 		msg := <-in
-		fmt.Printf("%s\n", msg.Content)
+		source = msg.source.String()[:strings.LastIndex(msg.source.String(), ":")]
+		fmt.Printf("%s\t%s\n", source, msg.Content)
 		var cmd *exec.Cmd
 		switch msg.Command {
 		case "say":
 			cmd = exec.Command("say", msg.Args...)
 			cmd.Stdin = strings.NewReader(msg.Content)
+		case "who":
+			cmd = exec.Command("say")
+			cmd.Stdin = strings.NewReader(fmt.Sprintf("Dernier contact avec %s", lastSource))
+		case "volume":
+			cmd = exec.Command("osascript", "-e", fmt.Sprintf("set volume output volume %s", msg.Args[0]))
 		default:
 			cmd = exec.Command("say")
 			cmd.Stdin = strings.NewReader("Erreur command non reconnue !")
 		}
 		cmd.Run()
+		lastSource = source
 	}
 }
 
