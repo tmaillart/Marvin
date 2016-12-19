@@ -1,20 +1,28 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os/exec"
 	"strings"
 )
 
+type Request struct {
+	Command string   `json:"command"`
+	Args    []string `json:"args"`
+	Content string   `json:"content"`
+	source  net.Addr
+}
+
 type Queue struct {
 	head *Link
 }
 
 type Link struct {
-	value    string
+	value    Request
 	next     *Link
 	previous *Link
 }
@@ -25,7 +33,7 @@ func NewQueue() *Queue {
 	return q
 }
 
-func (q *Queue) queue(str string) {
+func (q *Queue) queue(str Request) {
 	if q.head == nil {
 		q.head = new(Link)
 		q.head.value = str
@@ -42,43 +50,42 @@ func (q *Queue) queue(str string) {
 	q.head.previous = link
 }
 
-func (q *Queue) deQueue() (string, bool) {
+func (q *Queue) deQueue() (Request, bool) {
+	var str Request
+
 	if q.head == nil {
-		return "", false
+		return str, false
 	}
 
 	if q.head.next == q.head || q.head.previous == q.head {
-		str := q.head.value
+		str = q.head.value
 		q.head = nil
 		return str, true
 	}
-	str := q.head.value
-	//toRemove:=q.previous
-	//q.previous.previous.next=q
-	//q.previous=q.previous.previous
-	//delete(toRemove)
+	str = q.head.value
 	q.head.previous.next = q.head.next
 	q.head.next.previous = q.head.previous
 	q.head = q.head.next
 	return str, true
 }
 
-func handleConn(c net.Conn, out chan<- string) { //,out chan<- string
+func handleConn(c net.Conn, out chan<- Request) { //,out chan<- string
 	defer c.Close()
-	reader := bufio.NewReader(c)
+	var message Request
 	for {
-		message, err := reader.ReadString('\n')
-		if err != nil {
+		err := json.NewDecoder(c).Decode(&message)
+		if err == io.EOF {
 			return
+		} else if err == nil {
+			message.source = c.RemoteAddr()
+			out <- message
 		}
-		out <- message
-		//fmt.Printf("loop\n")
 	}
 }
 
-func runQueue(in <-chan string, out chan<- string) {
-	var msg string
-	var toQueue string
+func runQueue(in <-chan Request, out chan<- Request) {
+	var msg Request
+	var toQueue Request
 	var ok bool
 	q := NewQueue()
 	for {
@@ -95,33 +102,36 @@ func runQueue(in <-chan string, out chan<- string) {
 	}
 }
 
-func talkToMe(in <-chan string) {
+func talkToMe(in <-chan Request) {
+	var lastSource string
+	var source string
 	for {
 		msg := <-in
-		fmt.Printf("%s", msg)
-
-		// Extract parts from input (format: message | options)
-		parts := strings.Split(msg, "|")
-
-		// Message
-		message := parts[0]
-
-		// Optional arguments
-		arguments := strings.Fields(strings.Join(parts[1:], ""))
-
-		// Build command arguments
-		args := append([]string{message}, arguments...)
-
-		// Execute command
-		cmd := exec.Command("say", args...)
+		source = msg.source.String()[:strings.LastIndex(msg.source.String(), ":")]
+		fmt.Printf("%s\t%s\n", source, msg.Content)
+		var cmd *exec.Cmd
+		switch msg.Command {
+		case "say":
+			cmd = exec.Command("say", msg.Args...)
+			cmd.Stdin = strings.NewReader(msg.Content)
+		case "who":
+			cmd = exec.Command("say")
+			cmd.Stdin = strings.NewReader(fmt.Sprintf("Dernier contact avec %s", lastSource))
+		case "volume":
+			cmd = exec.Command("osascript", "-e", fmt.Sprintf("set volume output volume %s", msg.Args[0]))
+		default:
+			cmd = exec.Command("say")
+			cmd.Stdin = strings.NewReader("Erreur command non reconnue !")
+		}
 		cmd.Run()
+		lastSource = source
 	}
 }
 
 func main() {
 	listener, err := net.Listen("tcp", "0.0.0.0:8000")
-	toQueue := make(chan string)
-	toSay := make(chan string)
+	toQueue := make(chan Request)
+	toSay := make(chan Request)
 	if err != nil {
 		log.Fatal(err)
 	}
