@@ -71,8 +71,8 @@ func (q *Queue) deQueue() (Request, bool) {
 
 func handleConn(c net.Conn, out chan<- Request) { //,out chan<- string
 	defer c.Close()
-	var message Request
 	for {
+		var message Request
 		err := json.NewDecoder(c).Decode(&message)
 		if err == io.EOF {
 			return
