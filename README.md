@@ -1,8 +1,5 @@
 # Marvin
 ## Usage
 ```json
-{"command":"say","args":["-v","Zarvox"],"content":"Bonjour"}
+printf '{"command":"say","args":["-v","Zarvox"],"content":"Bonjour"}' | nc localhost 8000
 ```
-## TODO
-* Trouver des noms de combo
-* implémenter un client pour l'envoi en JSON

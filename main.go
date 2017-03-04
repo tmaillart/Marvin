@@ -35,13 +35,11 @@ func runQueue(in <-chan Request, out chan<- Request) {
 	var inter interface{}
 	var msg Request
 	var toQueue Request
-	//var ok bool
 	q := NewQueue()
+
 	for {
 		msg = <-in
-		/*q.queue(<-in)
-		inter, ok = q.deQueue()
-		msg = inter.(Request)*/
+
 		for ok := true; ok; {
 			select {
 			case out <- msg:

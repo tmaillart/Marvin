@@ -17,29 +17,29 @@ func NewQueue() *Queue {
 	return q
 }
 
-func (q *Queue) queue(str interface{}) {
+func (q *Queue) queue(val interface{}) {
 	if q.head == nil {
 		q.head = new(Link)
 		q.tail = q.head
-		q.head.value = str
+		q.head.value = val
 		q.head.next = nil
 		return
 	}
 	link := new(Link)
-	link.value = str
+	link.value = val
 	link.next = nil
 	q.head.next = link
 	q.head = link
 }
 
 func (q *Queue) deQueue() (interface{}, bool) {
-	var str interface{}
+	var val interface{}
 
 	if q.head == nil {
-		return str, false
+		return val, false
 	}
 
-	str = q.tail.value
+	val = q.tail.value
 
 	if q.head == q.tail {
 		q.head = nil
@@ -47,5 +47,5 @@ func (q *Queue) deQueue() (interface{}, bool) {
 	} else {
 		q.tail = q.tail.next
 	}
-	return str, true
+	return val, true
 }
