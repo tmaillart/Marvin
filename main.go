@@ -10,6 +10,13 @@ import (
 	"strings"
 )
 
+type Request struct {
+	Command string   `json:"command"`
+	Args    []string `json:"args"`
+	Content string   `json:"content"`
+	source  net.Addr
+}
+
 func handleConn(c net.Conn, out chan<- Request) { //,out chan<- string
 	defer c.Close()
 	for {
@@ -25,17 +32,23 @@ func handleConn(c net.Conn, out chan<- Request) { //,out chan<- string
 }
 
 func runQueue(in <-chan Request, out chan<- Request) {
+	var inter interface{}
 	var msg Request
 	var toQueue Request
-	var ok bool
+	//var ok bool
 	q := NewQueue()
 	for {
-		q.queue(<-in)
-		msg, ok = q.deQueue()
-		for ok {
+		msg = <-in
+		/*q.queue(<-in)
+		inter, ok = q.deQueue()
+		msg = inter.(Request)*/
+		for ok := true; ok; {
 			select {
 			case out <- msg:
-				msg, ok = q.deQueue()
+				inter, ok = q.deQueue()
+				if ok {
+					msg = inter.(Request)
+				}
 			case toQueue = <-in:
 				q.queue(toQueue)
 			}

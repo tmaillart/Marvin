@@ -1,21 +1,12 @@
 package main
 
-import "net"
-
-type Request struct {
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
-	Content string   `json:"content"`
-	source  net.Addr
-}
-
 type Queue struct {
 	head *Link
 	tail *Link
 }
 
 type Link struct {
-	value Request
+	value interface{}
 	next  *Link
 }
 
@@ -26,7 +17,7 @@ func NewQueue() *Queue {
 	return q
 }
 
-func (q *Queue) queue(str Request) {
+func (q *Queue) queue(str interface{}) {
 	if q.head == nil {
 		q.head = new(Link)
 		q.tail = q.head
@@ -41,8 +32,8 @@ func (q *Queue) queue(str Request) {
 	q.head = link
 }
 
-func (q *Queue) deQueue() (Request, bool) {
-	var str Request
+func (q *Queue) deQueue() (interface{}, bool) {
+	var str interface{}
 
 	if q.head == nil {
 		return str, false
