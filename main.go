@@ -10,65 +10,6 @@ import (
 	"strings"
 )
 
-type Request struct {
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
-	Content string   `json:"content"`
-	source  net.Addr
-}
-
-type Queue struct {
-	head *Link
-}
-
-type Link struct {
-	value    Request
-	next     *Link
-	previous *Link
-}
-
-func NewQueue() *Queue {
-	q := new(Queue)
-	q.head = nil
-	return q
-}
-
-func (q *Queue) queue(str Request) {
-	if q.head == nil {
-		q.head = new(Link)
-		q.head.value = str
-		q.head.next = q.head
-		q.head.previous = q.head
-		return
-	}
-	link := new(Link)
-	link.value = str
-
-	link.next = q.head
-	link.previous = q.head.previous
-	link.previous.next = link
-	q.head.previous = link
-}
-
-func (q *Queue) deQueue() (Request, bool) {
-	var str Request
-
-	if q.head == nil {
-		return str, false
-	}
-
-	if q.head.next == q.head || q.head.previous == q.head {
-		str = q.head.value
-		q.head = nil
-		return str, true
-	}
-	str = q.head.value
-	q.head.previous.next = q.head.next
-	q.head.next.previous = q.head.previous
-	q.head = q.head.next
-	return str, true
-}
-
 func handleConn(c net.Conn, out chan<- Request) { //,out chan<- string
 	defer c.Close()
 	for {
