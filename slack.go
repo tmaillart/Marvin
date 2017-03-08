@@ -43,10 +43,10 @@ func curl(url string, i interface{}) error {
 	return nil
 }
 
-func main() { // args channel, token
+func SlackListenner(token string, chaname string, out chan<- Request) { // args channel, token
 	var response Data
-	c := Channel{Name: "blabla", Id: ""}
-	token := "00000-00000"
+	c := Channel{Name: chaname, Id: ""}
+	//token := "00000-00000"
 	if curl("https://slack.com/api/rtm.start?token="+token, &response) != nil || !response.Ok {
 		return
 	}
@@ -66,14 +66,20 @@ func main() { // args channel, token
 		return
 	}
 	var msg Message
+	var req Request
+	req.Command = "say"
+	req.source = nil
+	defer conn.Close()
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			fmt.Println("read:", err)
 			return
 		}
-		if json.Unmarshal(message, &msg) == nil && msg.Type == "message" {
-			fmt.Printf("%s\n", msg.Text)
+		if json.Unmarshal(message, &msg) == nil && msg.Type == "message" && msg.Channel == c.Id {
+			req.Content = msg.Text
+			out <- req
+			fmt.Printf("Slack\t%s\n", msg.Text)
 		}
 	}
 
