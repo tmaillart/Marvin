@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -59,7 +60,11 @@ func talkToMe(in <-chan Request) {
 	var source string
 	for {
 		msg := <-in
-		source = msg.source.String()[:strings.LastIndex(msg.source.String(), ":")]
+		if msg.source != nil {
+			source = msg.source.String()[:strings.LastIndex(msg.source.String(), ":")]
+		} else {
+			source = "Unknown"
+		}
 		fmt.Printf("%s\t%s\n", source, msg.Content)
 		var cmd *exec.Cmd
 		switch msg.Command {
@@ -81,6 +86,11 @@ func talkToMe(in <-chan Request) {
 }
 
 func main() {
+	var channel, token string
+	flag.StringVar(&token, "token", "", "usage: --token XXXX-XXXX")
+	flag.StringVar(&channel, "chan", "", "usage: --channel general")
+	flag.Parse()
+	fmt.Printf("token: %s\nchannel: %s\n", token, channel)
 	listener, err := net.Listen("tcp", "0.0.0.0:8000")
 	toQueue := make(chan Request)
 	toSay := make(chan Request)
@@ -89,6 +99,9 @@ func main() {
 	}
 	go runQueue(toQueue, toSay)
 	go talkToMe(toSay)
+	if channel != "" && token != "" {
+		go SlackListenner(token, channel, toQueue)
+	}
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
