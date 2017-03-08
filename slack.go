@@ -48,6 +48,7 @@ func SlackListenner(token string, chaname string, out chan<- Request) { // args 
 	c := Channel{Name: chaname, Id: ""}
 	//token := "00000-00000"
 	if curl("https://slack.com/api/rtm.start?token="+token, &response) != nil || !response.Ok {
+		fmt.Printf("Slack connection error: bad token\n")
 		return
 	}
 
@@ -55,6 +56,10 @@ func SlackListenner(token string, chaname string, out chan<- Request) { // args 
 		if response.Channels[i].Name == c.Name {
 			c.Id = response.Channels[i].Id
 		}
+	}
+	if c.Id == "" {
+		fmt.Printf("Slack connection error: Unrecognized channel\n")
+		return
 	}
 
 	fmt.Printf("Websocket: %s\nChannel %s = %s\n", response.Url, c.Name, c.Id)
@@ -84,3 +89,4 @@ func SlackListenner(token string, chaname string, out chan<- Request) { // args 
 	}
 
 }
+
